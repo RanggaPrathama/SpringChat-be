@@ -1,0 +1,18 @@
+logging:
+  file:
+    name: logs/springchat.log
+  level:
+    root: INFO
+    com.springchat.springchat_chat: DEBUG
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:250ms}
+      timeout: ${REDIS_TIMEOUT:500ms}
+
+springchat:
+  rate-limit:
+    key-secret: ${RATE_LIMIT_KEY_SECRET:local-development-rate-limit-key-change-before-deploy-2026}

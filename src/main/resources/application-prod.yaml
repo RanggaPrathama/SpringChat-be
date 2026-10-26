@@ -1,0 +1,42 @@
+# =============================================================================
+# Profile PRODUCTION
+# Aktifkan SELALU lewat environment variable (bukan di application.yaml):
+#   SPRING_PROFILES_ACTIVE=prod
+# (atau -Dspring.profiles.active=prod) -> nilai ini juga dipakai main() untuk
+# mematikan total DevTools SEBELUM Spring Boot booting.
+#
+# Build produksi:  ./mvnw clean package -DskipTests
+# Jalankan:        java -jar target/springchat-chat-0.0.1-SNAPSHOT.jar
+#   -> DevTools otomatis nonaktif saat dijalankan dari packaged jar (docs),
+#      plus pengaman ganda di bawah ini.
+# =============================================================================
+
+spring:
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:250ms}
+      timeout: ${REDIS_TIMEOUT:500ms}
+  devtools:
+    restart:
+      # Pengaman dari config; pengaktif penuhnya ada di main() via system property
+      # (lihat SpringchatChatApplication.isProduction()).
+      enabled: false
+    # Batalkan "property defaults" devtools (error include-message: always,
+    # include-stacktrace: always, trace sampling 1.0, dll) yang hanya untuk dev.
+    add-properties: false
+
+springchat:
+  rate-limit:
+    key-secret: ${RATE_LIMIT_KEY_SECRET}
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER}
+    cookie-secure: true
+    allowed-origin: ${FRONTEND_ORIGIN}
+
+# Matikan Swagger/OpenAPI di produksi (sumber warning saat startup, keamanan).
+springdoc:
+  api-docs.enabled: false
+  swagger-ui.enabled: false
