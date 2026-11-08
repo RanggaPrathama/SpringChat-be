@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
 
-import com.springchat.springchat_chat.modules.chat.dto.MessageCreatedEvent;
+import com.springchat.springchat_chat.modules.chat.event.MessageCreatedEvent;
 
 import lombok.RequiredArgsConstructor;
 

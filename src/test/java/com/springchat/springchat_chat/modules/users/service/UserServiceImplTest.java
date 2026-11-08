@@ -1,14 +1,14 @@
 package com.springchat.springchat_chat.modules.users.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.springchat.springchat_chat.common.exception.DuplicateResourceException;
+import com.springchat.springchat_chat.modules.users.dto.request.CreateUserRequest;
+import com.springchat.springchat_chat.modules.users.dto.request.ProfileUpdateRequest;
+import com.springchat.springchat_chat.modules.users.entity.User;
+import com.springchat.springchat_chat.modules.users.repository.UserRepository;
+import com.springchat.springchat_chat.modules.users.service.UserService;
+import jakarta.validation.Validation;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,17 +18,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.springchat.springchat_chat.common.exception.BadRequestException;
-import com.springchat.springchat_chat.modules.users.dto.CreateUserRequest;
-import com.springchat.springchat_chat.modules.users.dto.ProfileUpdateRequest;
-import com.springchat.springchat_chat.modules.users.entity.User;
-import com.springchat.springchat_chat.modules.users.repository.UserRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+class UserServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private PasswordEncoder passwordEncoder;
-    @InjectMocks private UserService userService;
+    @InjectMocks private UserServiceImpl userService;
 
     @Test
     void registerNormalizesIdentityAndHashesPassword() {
@@ -41,11 +41,11 @@ class UserServiceTest {
             return user;
         });
 
-        User user = userService.registerUser(new CreateUserRequest(" Alice ", " ALICE@example.com ", "password123"));
+        var user = userService.registerUser(new CreateUserRequest(" Alice ", " ALICE@example.com ", "password123"));
 
         assertThat(user.getUsername()).isEqualTo("alice");
         assertThat(user.getEmail()).isEqualTo("alice@example.com");
-        assertThat(user.getPassword()).isEqualTo("hashed");
+        verify(passwordEncoder).encode("password123");
     }
 
     @Test
@@ -60,9 +60,9 @@ class UserServiceTest {
         var response = userService.updateOwnProfile(userId,
                 new ProfileUpdateRequest("AliceNew", "https://example.com/avatar.png"));
 
-        assertThat(response.username()).isEqualTo("alicenew");
-        assertThat(response.email()).isEqualTo("alice@example.com");
-        assertThat(response.avatarUrl()).isEqualTo("https://example.com/avatar.png");
+        assertThat(response.getUsername()).isEqualTo("alicenew");
+        assertThat(response.getEmail()).isEqualTo("alice@example.com");
+        assertThat(response.getAvatarUrl()).isEqualTo("https://example.com/avatar.png");
     }
 
     @Test
@@ -75,20 +75,25 @@ class UserServiceTest {
         when(userRepository.existsByUsernameIgnoreCase("bob")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.updateOwnProfile(userId, new ProfileUpdateRequest("Bob", null)))
-                .isInstanceOf(com.springchat.springchat_chat.common.exception.DuplicateResourceException.class);
+                .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
     void updateProfileRejectsEmptyPatch() {
-        assertThatThrownBy(() -> userService.updateOwnProfile(UUID.randomUUID(), new ProfileUpdateRequest(null, null)))
-                .isInstanceOf(BadRequestException.class);
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            assertThat(factory.getValidator().validate(new ProfileUpdateRequest(null, null))).isNotEmpty();
+        }
     }
 
     @Test
-    void searchRejectsShortQueryAndExcludesCurrentUser() {
+    void searchRejectsShortQueryAndExcludesCurrentUser() throws Exception {
         UUID currentUserId = UUID.randomUUID();
-        assertThatThrownBy(() -> userService.searchUsers("a", currentUserId, PageRequest.of(0, 20)))
-                .isInstanceOf(BadRequestException.class);
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            assertThat(factory.getValidator().forExecutables().validateParameters(userService,
+                    UserService.class.getMethod("searchUsers",
+                    String.class, UUID.class, org.springframework.data.domain.Pageable.class),
+                    new Object[] {"a", currentUserId, PageRequest.of(0, 20)})).isNotEmpty();
+        }
 
         when(userRepository.searchDirectory("ali", currentUserId, PageRequest.of(0, 20)))
                 .thenReturn(Page.empty());

@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.springchat.springchat_chat.common.exception.GlobalExceptionHandler;
 import com.springchat.springchat_chat.config.SecurityConfig;
-import com.springchat.springchat_chat.modules.users.dto.UserResponse;
+import com.springchat.springchat_chat.modules.users.dto.response.UserResponse;
 import com.springchat.springchat_chat.modules.users.service.UserService;
 
 @WebMvcTest(UserController.class)

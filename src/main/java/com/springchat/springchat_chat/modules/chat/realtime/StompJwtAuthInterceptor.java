@@ -29,7 +29,7 @@ public class StompJwtAuthInterceptor implements ChannelInterceptor {
         if (accessor == null || accessor.getCommand() != StompCommand.CONNECT) return message;
         String authorization = accessor.getFirstNativeHeader("Authorization");
         if (authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new MessagingException("Authentication required");
+            throw new MessagingException("Silakan masuk untuk melanjutkan.");
         }
         try {
             Jwt jwt = jwtDecoder.decode(authorization.substring(7));
@@ -40,7 +40,7 @@ public class StompJwtAuthInterceptor implements ChannelInterceptor {
             }
             return message;
         } catch (RuntimeException ex) {
-            throw new MessagingException("Invalid access token");
+            throw new MessagingException("Sesi Anda tidak valid. Silakan masuk kembali.");
         }
     }
 }

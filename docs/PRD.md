@@ -35,3 +35,13 @@ See [conversations and groups](specs/004-conversations-and-groups/spec.md) and [
 ## API and operational boundaries
 
 The public routes remain under `/api/v1/auth`, `/api/v1/users`, and `/api/v1/conversations`; message routes are nested under a conversation. Controllers accept and validate requests, services execute use cases, repositories own persistence queries, and the global exception handler formats errors. Local schema setup uses Flyway's [development migration baseline](database-migrations.md). Logs go to `logs/springchat.log` in the development profile and use the rules in the backend guide.
+
+Backend callers use three module contracts: `AuthService`, `UserService`, and `ChatService`. Each has one `ServiceImpl` implementation beside its interface; `ChatService` covers both conversation and message flows. HTTP input and output live in `dto/request` and `dto/response`. Shared `CreationResult<T>` carries internal creation/reuse metadata; controllers still send `ApiResponse` JSON. Conversation summary queries map directly to response DTOs in the repository without projection types. See [service contracts and package structure](backend-conventions.md#service-contracts-and-package-structure) for the implementation rules.
+
+HTTP DTOs are mutable classes with explicit JSON names. DTO constraints validate request structure at HTTP and service boundaries; services retain business authorization and persistence decisions. Service contracts expose DTOs rather than persistence entities.
+
+Users receive actionable Indonesian error messages. Stable HTTP status/error codes and field keys support client handling; internal technical diagnostics are kept in logs.
+
+## Pagination response contract
+
+History returns the message list directly in ApiResponse.data. Cursor metadata lives in the common pagination field: size and hasNext are always present; nextCursor is included only when another batch exists. Page, totalElements, totalPages, and hasPrevious are omitted in cursor mode, including on the first request without a cursor. Numbered pagination retains its existing page/size/totals/hasNext/hasPrevious fields and omits nextCursor. PaginationMeta uses nullable mode-specific fields with NON_NULL serialization. Services carry data and metadata through the reusable internal PaginatedResult<T>; controllers create the public ApiResponse envelope. This replaces the former nested data.items/data.nextCursor history shape.

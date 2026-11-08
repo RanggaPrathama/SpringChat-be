@@ -1,17 +1,14 @@
 package com.springchat.springchat_chat.modules.auth.controller.v1;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.springchat.springchat_chat.common.exception.GlobalExceptionHandler;
+import com.springchat.springchat_chat.config.SecurityConfig;
+import com.springchat.springchat_chat.modules.auth.dto.response.AccessTokenResponse;
+import com.springchat.springchat_chat.modules.auth.service.AuthService;
+import com.springchat.springchat_chat.modules.auth.service.IssuedTokens;
+import com.springchat.springchat_chat.modules.users.dto.response.UserResponse;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
-import java.time.Duration;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -20,11 +17,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.springchat.springchat_chat.common.exception.GlobalExceptionHandler;
-import com.springchat.springchat_chat.config.SecurityConfig;
-import com.springchat.springchat_chat.modules.auth.dto.AccessTokenResponse;
-import com.springchat.springchat_chat.modules.auth.service.AuthService;
-import com.springchat.springchat_chat.modules.users.dto.UserResponse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
 @Import({ SecurityConfig.class, GlobalExceptionHandler.class })
@@ -46,7 +45,7 @@ class AuthControllerTest {
         var access = new AccessTokenResponse("access-token", "Bearer", 900,
                 new UserResponse(userId, "alice", "alice@example.com", null));
         when(authService.loginWithEmail(any())).thenReturn(Optional.of(
-                new AuthService.IssuedTokens(access, "refresh-secret", Duration.ofDays(7))));
+                new IssuedTokens(access, "refresh-secret", Duration.ofDays(7))));
 
         mockMvc.perform(post("/api/v1/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -65,7 +64,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"missing@example.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Invalid credentials"));
+                .andExpect(jsonPath("$.message").value("Email atau kata sandi tidak sesuai."));
     }
 
     @Test
@@ -75,6 +74,6 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice\",\"password\":\"password123\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Invalid credentials"));
+                .andExpect(jsonPath("$.message").value("Email atau kata sandi tidak sesuai."));
     }
 }

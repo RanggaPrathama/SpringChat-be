@@ -15,7 +15,7 @@ Accounts have a unique username, a unique email, and a password credential store
 - Logout revokes the associated session and consumes every unconsumed refresh token in that session, including when logout is presented with an older token from that token rotation history. Repeating logout is safe.
 - Logout invalidates refresh credentials immediately. Existing access JWTs remain usable until their own expiry; immediate access-token revocation is outside this contract.
 - Passwords remain hashed and are never returned in API responses.
-- `AuthController` keeps short HTTP action names; `AuthService` uses `registerUser`, `loginWithEmail`, `refreshSession`, and `logoutSession`. Expected authentication failures keep generic public responses. Service diagnostics never include credentials or tokens; transaction and logging rules are in [backend conventions](../../backend-conventions.md).
+- `AuthController` keeps short HTTP action names and injects the `AuthService` interface, implemented by `AuthServiceImpl` in the same flat `service` package. The contract declares `registerUser`, `loginWithEmail`, `refreshSession`, and `logoutSession`. Request and response DTOs are separated; `IssuedTokens` also lives directly in auth `service` as an internal result, not a JSON response. Expected authentication failures keep generic public responses. Service diagnostics never include credentials or tokens; transaction and logging rules are in [backend conventions](../../backend-conventions.md).
 
 ## Acceptance criteria
 
@@ -25,3 +25,9 @@ Accounts have a unique username, a unique email, and a password credential store
 - Login and registration responses never expose a password or password hash.
 - Repeated refresh-token rotation leaves at most one unconsumed token per session.
 - Logout leaves no unconsumed refresh token in the revoked session, and refresh attempts using its old or current tokens are rejected.
+
+## DTO and validation implementation
+
+HTTP DTOs use Lombok @Data classes and explicit camelCase @JsonProperty names. Normalizing setters run before Bean Validation. Field and cross-field constraints protect both @Valid HTTP input and @Validated service calls; database and actor-dependent business rules remain in services. Entity mapping is explicit in module mappers. See [backend conventions](../../backend-conventions.md).
+
+Public errors use actionable Indonesian wording without internal enum names, Java method paths, or database details. Status codes and JSON field names are unchanged; see the user-facing error policy in [backend conventions](../../backend-conventions.md).

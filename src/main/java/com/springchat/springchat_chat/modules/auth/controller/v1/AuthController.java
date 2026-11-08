@@ -1,7 +1,17 @@
 package com.springchat.springchat_chat.modules.auth.controller.v1;
 
+import com.springchat.springchat_chat.common.response.ApiResponse;
+import com.springchat.springchat_chat.modules.auth.dto.request.LoginRequest;
+import com.springchat.springchat_chat.modules.auth.dto.response.AccessTokenResponse;
+import com.springchat.springchat_chat.modules.auth.dto.response.CsrfPayload;
+import com.springchat.springchat_chat.modules.auth.service.AuthService;
+import com.springchat.springchat_chat.modules.auth.service.IssuedTokens;
+import com.springchat.springchat_chat.modules.users.dto.request.CreateUserRequest;
+import com.springchat.springchat_chat.modules.users.dto.response.UserResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.time.Duration;
-
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,17 +26,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.springchat.springchat_chat.common.response.ApiResponse;
-import com.springchat.springchat_chat.modules.auth.dto.AccessTokenResponse;
-import com.springchat.springchat_chat.modules.auth.dto.LoginRequest;
-import com.springchat.springchat_chat.modules.auth.service.AuthService;
-import com.springchat.springchat_chat.modules.users.dto.CreateUserRequest;
-import com.springchat.springchat_chat.modules.users.dto.UserResponse;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -51,7 +50,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody CreateUserRequest request,
             HttpServletRequest httpRequest) {
         UserResponse user = authService.registerUser(request, httpRequest.getRemoteAddr());
-        log.info("User registered userId={}", user.id());
+        log.info("User registered userId={}", user.getId());
         return ResponseEntity.status(201).body(ApiResponse.ok("User registered successfully", user));
     }
 
@@ -60,9 +59,9 @@ public class AuthController {
         var issued = authService.loginWithEmail(request);
         if (issued.isEmpty()) {
             return ResponseEntity.status(401).cacheControl(CacheControl.noStore())
-                    .body(ApiResponse.<AccessTokenResponse>error("Invalid credentials", "UNAUTHORIZED"));
+                    .body(ApiResponse.<AccessTokenResponse>error("Email atau kata sandi tidak sesuai.", "UNAUTHORIZED"));
         }
-        AuthService.IssuedTokens tokens = issued.get();
+        IssuedTokens tokens = issued.get();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie(tokens.refreshToken(), tokens.refreshExpiresIn()).toString())
                 .body(ApiResponse.ok("Signed in successfully", tokens.access()));
@@ -75,9 +74,9 @@ public class AuthController {
         if (issued.isEmpty()) {
             return ResponseEntity.status(401).cacheControl(CacheControl.noStore())
                     .header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO).toString())
-                    .body(ApiResponse.<AccessTokenResponse>error("Refresh session is invalid", "UNAUTHORIZED"));
+                    .body(ApiResponse.<AccessTokenResponse>error("Sesi Anda telah berakhir. Silakan masuk kembali.", "UNAUTHORIZED"));
         }
-        AuthService.IssuedTokens tokens = issued.get();
+        IssuedTokens tokens = issued.get();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie(tokens.refreshToken(), tokens.refreshExpiresIn()).toString())
                 .body(ApiResponse.ok("Session refreshed successfully", tokens.access()));
@@ -102,5 +101,4 @@ public class AuthController {
                 .build();
     }
 
-    public record CsrfPayload(String headerName, String token) {}
 }

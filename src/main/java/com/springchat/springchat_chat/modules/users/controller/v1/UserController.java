@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.springchat.springchat_chat.common.response.ApiResponse;
 import com.springchat.springchat_chat.common.response.PaginationMeta;
-import com.springchat.springchat_chat.modules.users.dto.ProfileUpdateRequest;
-import com.springchat.springchat_chat.modules.users.dto.UserResponse;
+import com.springchat.springchat_chat.modules.users.dto.request.ProfileUpdateRequest;
+import com.springchat.springchat_chat.modules.users.dto.response.UserResponse;
 import com.springchat.springchat_chat.modules.users.service.UserService;
 import com.springchat.springchat_chat.utils.Sanitizer;
 

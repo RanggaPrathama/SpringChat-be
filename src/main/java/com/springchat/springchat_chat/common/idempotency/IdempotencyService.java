@@ -26,7 +26,7 @@ public class IdempotencyService {
     @Transactional(propagation = Propagation.MANDATORY)
     public Reservation reserve(UUID userId, String operation, UUID key, String canonicalRequest) {
         if (key == null) {
-            throw new BadRequestException("idempotencyKey is required");
+            throw new BadRequestException("Pesan belum dapat dikirim. Silakan coba kirim kembali.");
         }
         String requestHash = hash(canonicalRequest);
         List<UUID> inserted = jdbcTemplate.query("""
@@ -50,7 +50,7 @@ public class IdempotencyService {
             throw new IllegalStateException("Idempotency record missing after conflict");
         }
         if (!stored.requestHash().equals(requestHash)) {
-            throw new DuplicateResourceException("idempotencyKey was already used with a different request");
+            throw new DuplicateResourceException("Pengiriman pesan tidak dapat dilanjutkan. Muat ulang percakapan, lalu kirim kembali.");
         }
         if (stored.resourceId() == null) {
             throw new IllegalStateException("Idempotency record has no completed result");

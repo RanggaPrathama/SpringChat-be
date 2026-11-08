@@ -76,13 +76,13 @@ public class SecurityConfig {
     @Bean
     AccessDeniedHandler accessDeniedHandler() {
         return (request, response, exception) -> writeError(response,
-                HttpServletResponse.SC_FORBIDDEN, "Access denied", "FORBIDDEN");
+                HttpServletResponse.SC_FORBIDDEN, "Anda tidak memiliki izin untuk melakukan tindakan ini.", "FORBIDDEN");
     }
 
     @Bean
     AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, exception) -> writeError(response,
-                HttpServletResponse.SC_UNAUTHORIZED, "Authentication required", "UNAUTHORIZED");
+                HttpServletResponse.SC_UNAUTHORIZED, "Silakan masuk untuk melanjutkan.", "UNAUTHORIZED");
     }
 
     private static SecretKey secretKey(String secret) {
@@ -96,6 +96,7 @@ public class SecurityConfig {
     private static void writeError(HttpServletResponse response, int status, String message, String code)
             throws java.io.IOException {
         response.setStatus(status);
+        response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write("{\"success\":false,\"message\":\"" + message

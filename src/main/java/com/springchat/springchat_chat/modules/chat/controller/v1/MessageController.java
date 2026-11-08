@@ -1,7 +1,16 @@
 package com.springchat.springchat_chat.modules.chat.controller.v1;
 
+import com.springchat.springchat_chat.common.response.ApiResponse;
+import com.springchat.springchat_chat.common.response.CreationResult;
+import com.springchat.springchat_chat.modules.chat.dto.request.MarkReadRequest;
+import com.springchat.springchat_chat.modules.chat.dto.request.SendMessageRequest;
+import com.springchat.springchat_chat.common.response.PaginatedResult;
+import com.springchat.springchat_chat.modules.chat.dto.response.MessageResponse;
+import com.springchat.springchat_chat.modules.chat.service.ChatService;
+import jakarta.validation.Valid;
 import java.util.UUID;
-
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,31 +23,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.springchat.springchat_chat.common.response.ApiResponse;
-import com.springchat.springchat_chat.modules.chat.dto.MarkReadRequest;
-import com.springchat.springchat_chat.modules.chat.dto.MessagePageResponse;
-import com.springchat.springchat_chat.modules.chat.dto.MessageResponse;
-import com.springchat.springchat_chat.modules.chat.dto.SendMessageRequest;
-import com.springchat.springchat_chat.modules.chat.service.MessageService;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
 @RestController
 @RequestMapping("/api/v1/conversations/{conversationId}")
 @RequiredArgsConstructor
 public class MessageController {
-    private final MessageService messageService;
+    private final ChatService chatService;
 
     @GetMapping("/messages")
-    public ResponseEntity<ApiResponse<MessagePageResponse>> history(
+    public ResponseEntity<ApiResponse<List<MessageResponse>>> history(
             @PathVariable UUID conversationId,
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "30") int limit) {
-        MessagePageResponse page = messageService.getMessageHistory(conversationId,
+        PaginatedResult<MessageResponse> page = chatService.getMessageHistory(conversationId,
                 UUID.fromString(jwt.getSubject()), cursor, limit);
-        return ResponseEntity.ok(ApiResponse.ok("Messages retrieved successfully", page));
+        return ResponseEntity.ok(ApiResponse.paginated("Riwayat pesan berhasil dimuat.", page.data(), page.pagination()));
     }
 
     @PostMapping("/messages")
@@ -46,11 +45,11 @@ public class MessageController {
             @PathVariable UUID conversationId,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody SendMessageRequest request) {
-        MessageService.SendResult result = messageService.sendMessage(conversationId,
+        CreationResult<MessageResponse> result = chatService.sendMessage(conversationId,
                 UUID.fromString(jwt.getSubject()), request);
         ResponseEntity.BodyBuilder response = result.created()
                 ? ResponseEntity.status(201) : ResponseEntity.ok();
-        return response.body(ApiResponse.ok("Message accepted successfully", result.message()));
+        return response.body(ApiResponse.ok("Message accepted successfully", result.data()));
     }
 
     @PutMapping("/read")
@@ -58,7 +57,7 @@ public class MessageController {
             @PathVariable UUID conversationId,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody MarkReadRequest request) {
-        messageService.markConversationRead(conversationId, UUID.fromString(jwt.getSubject()), request);
+        chatService.markConversationRead(conversationId, UUID.fromString(jwt.getSubject()), request);
         return ResponseEntity.ok(ApiResponse.ok("Conversation marked as read", null));
     }
 }
